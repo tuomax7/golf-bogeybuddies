@@ -1,15 +1,10 @@
 import type { RouteEntries } from './route-utils';
 
 import home from './home';
-import post from './post';
-import postList from './post-list';
-import postCreate from './post-create';
-import theming from './theming';
-import featureFlags from './feature-flags';
-
-// NOTE: the `path` that used to match the route is defined here!
-// There is also a `path` defined in the entry itself which is used to provide
-// type safety for the path params used in the loader function.
+import rounds from './rounds';
+import round from './rounds/:roundId';
+import rivalries from './rivalries';
+import rivalry from './rivalries/:rivalryId';
 
 export const routes = [
   {
@@ -17,20 +12,19 @@ export const routes = [
     entry: home,
   },
   {
-    path: '/blog',
-    entry: postList,
-    children: [{ path: 'create', entry: postCreate }],
+    path: '/rounds',
+    entry: rounds,
   },
   {
-    path: '/blog/:id',
-    entry: post,
+    path: '/rounds/:roundId',
+    entry: round,
   },
   {
-    path: '/theming',
-    entry: theming,
+    path: '/rivalries',
+    entry: rivalries,
   },
   {
-    path: '/feature-flags',
-    entry: featureFlags,
+    path: '/rivalries/:rivalryId',
+    entry: rivalry,
   },
 ] satisfies RouteEntries;

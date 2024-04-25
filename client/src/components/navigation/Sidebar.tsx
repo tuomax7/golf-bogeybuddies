@@ -1,56 +1,42 @@
 import { t, Trans } from '@lingui/macro';
-
 import { UnstyledLink } from './Link';
-import { Text, Icon, OutlineButton, IconName } from '~uikit';
+import { Text, OutlineButton } from '~uikit';
 import { styled } from '~styled-system/jsx';
 import { useAuth } from '~services/auth';
 import { stack } from '~styled-system/patterns';
-import { isFeatureEnabled } from '~utils/feature-flags';
+import { useLingui } from '@lingui/react'
 
 export default function Sidebar() {
+  const { i18n } = useLingui();
   const auth = useAuth();
-  const feature3Enabled = isFeatureEnabled('feature-3');
 
   const items: Array<{
     label: string;
-    icon: IconName;
     to: string;
     testId: string;
   }> = [
     {
       label: t`Home`,
-      icon: 'homeFilled',
       to: '/',
       testId: 'navigate-to-home',
     },
     {
-      label: t`Blog`,
-      icon: 'book',
-      to: '/blog',
-      testId: 'navigate-to-blog',
+      label: t`Rivalries`,
+      to: '/rivalries',
+      testId: 'navigate-to-rivalries',
     },
     {
-      label: t`Theming`,
-      icon: 'lightningFilled',
-      to: '/theming',
-      testId: 'navigate-to-theming',
+      label: t`Rounds`,
+      to: '/rounds',
+      testId: 'navigate-to-rounds',
     },
   ];
-
-  if (feature3Enabled) {
-    items.push({
-      label: t`Feature Flags`,
-      icon: 'commandLineFilled',
-      to: '/feature-flags',
-      testId: 'navigate-to-feature-flags',
-    });
-  }
 
   return (
     <Wrapper>
       <Nav>
         <NavList>
-          {items.map(({ label, icon, to, testId }) => (
+          {items.map(({ label, to, testId }) => (
             <li key={label}>
               <NavItemLink
                 to={to}
@@ -58,7 +44,6 @@ export default function Sidebar() {
                 preloadOn="hover"
                 className={stack({ direction: 'row', gap: '$small' })}
               >
-                <Icon name={icon} size={24} color="text" />
                 <Text variant="body">{label}</Text>
               </NavItemLink>
             </li>

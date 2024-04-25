@@ -1,20 +1,20 @@
-import logoImg from '../../images/logo.svg';
 import { Stack, Text } from '~uikit';
 import { styled } from '~styled-system/jsx';
 import ColorModeButton from '~components/common/ColorModeButton';
 import LangMenuButton from '~components/common/LangMenuButton';
+import { UnstyledLink } from './Link';
 
 export default function Toolbar() {
   return (
     <Wrapper>
       <Stack direction="row" gap="$normal" align="center">
-        <LogoWrapper>
-          <LogoImg src={logoImg} />
-        </LogoWrapper>
-
-        <Text variant="bodyBold" color="primary">
-          Taito Fullstack Template
-        </Text>
+		<UnstyledLink
+                to='/'
+                data-test-id="navigate-to-home"
+                preloadOn="hover"
+              >
+                <Text variant="title2" color='primary'>BogeyBuddies</Text>
+        </UnstyledLink>
       </Stack>
 
       <Stack direction="row" gap="$normal" align="center">
@@ -38,21 +38,14 @@ const Wrapper = styled('header', {
   },
 });
 
-const LogoWrapper = styled('div', {
-  base: {
-    width: '24px',
-    height: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '$small',
-    backgroundColor: '$primaryMuted',
-  },
-});
-
-const LogoImg = styled('img', {
-  base: {
-    height: '18px',
-    width: 'auto',
-  },
-});
+const NavItemLink = styled(UnstyledLink, {
+	base: {
+	  position: 'relative',
+	  display: 'flex',
+	  alignItems: 'center',
+	  color: 'green',
+	  padding: '$normal',
+	  $hoverHighlight: '',
+	  $pressOpacity: '',
+	},
+  });
