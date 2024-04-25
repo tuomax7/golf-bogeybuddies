@@ -1,0 +1,12 @@
+query postAttachment($input: ReadPostAttachmentInput!) {
+    postAttachment(input: $input){
+        contentType
+        createdAt
+        description
+        fileUrl
+        filename
+        id
+        title
+        updatedAt
+    }
+}

@@ -1,0 +1,3 @@
+# golf-bogeybuddies-${taito_env}-server
+
+# 0 0 * * * root docker exec -t golf-bogeybuddies-${taito_env}-server ./cli.sh example

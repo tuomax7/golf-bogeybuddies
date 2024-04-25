@@ -1,0 +1,26 @@
+query posts($filterGroups: [FilterGroup!]!, $order: Order!, $pagination: Pagination!, $search: String, $attachmentOrder: Order) {
+    posts(filterGroups: $filterGroups, order: $order, pagination: $pagination, search: $search){
+        data{
+            attachments(attachmentOrder: $attachmentOrder){
+                data{
+                    contentType
+                    createdAt
+                    description
+                    fileUrl
+                    filename
+                    id
+                    title
+                    updatedAt
+                }
+                total
+            }
+            author
+            content
+            createdAt
+            id
+            subject
+            updatedAt
+        }
+        total
+    }
+}

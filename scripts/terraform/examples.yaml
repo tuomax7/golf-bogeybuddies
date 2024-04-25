@@ -1,0 +1,80 @@
+# ----------------------------------------------------------
+# Permissions
+# ----------------------------------------------------------
+
+# NOTE: On Azure use object id: user:2222222b-123b-123c-123d-1e2345a6c7e8
+settings:
+  namespace:
+    roles:
+      - name: taito-developer
+        subjects:
+          - user:john.doe@mydomain.com
+          - user:jane.doe@mydomain.com
+      - name: taito-status-viewer
+        subjects:
+          - user:james.toe@mydomain.com
+
+# ----------------------------------------------------------
+# Auth: Service accounts, API keys, and OAUTH clients
+# ----------------------------------------------------------
+
+settings:
+  auth:
+    serviceAccounts:
+      # Google service account for server (storage)
+      - name: ${taito_project_short}-${taito_env}-server
+        roles: []
+
+    apiKeys:
+      # Google API key for client (maps)
+      - name: ${taito_project}-${taito_env}-client
+        origins:
+          - ${taito_domain}
+        services:
+          - name: maps.googleapis.com
+            methods: ["GET*"]
+      # Sendgrid API key for server (email send)
+      # TIP: Run 'taito env output:ENV sendgrid_api_keys' to see the keys
+      - provider: sendgrid
+        name: ${taito_project}-${taito_env}-server
+        services:
+          - name: mail.send
+
+# ----------------------------------------------------------
+# Integration: Webhooks
+# ----------------------------------------------------------
+
+settings:
+  integration:
+    webhooks:
+      # Sendgrid webhook for server (email receive)
+      - provider: sendgrid
+        name: ${taito_project}-${taito_env}-email
+        url: https://${taito_domain}/api/email
+        options:
+          hostname: ${taito_project}-${taito_env}.mydomain.com
+          spamCheck: false
+          sendRaw: false
+
+# ----------------------------------------------------------
+# Log alerts
+# ----------------------------------------------------------
+
+settings:
+  alerts:
+    - name: ${taito_project}-${taito_env}-alert-example
+      type: log
+      channels: [ "${taito_messaging_monitoring_channel}" ]
+      rule: >
+        resource.type="k8s_container"
+        resource.labels.namespace_name="${taito_project}-${taito_env}"
+        jsonPayload.message:"Example message"
+
+# ----------------------------------------------------------
+# More
+# ----------------------------------------------------------
+
+# - AWS: https://registry.terraform.io/modules/TaitoUnited/project-resources/aws/latest
+# - Azure: https://registry.terraform.io/modules/TaitoUnited/project-resources/azurerm/latest
+# - GCP: https://registry.terraform.io/modules/TaitoUnited/project-resources/google/latest
+# - DigitalOcean: https://registry.terraform.io/modules/TaitoUnited/project-resources/digitalocean/latest

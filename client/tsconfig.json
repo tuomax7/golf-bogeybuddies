@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./",
+    "downlevelIteration": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "noEmit": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false,
+    "target": "ESNext",
+    "types": ["vitest/globals"],
+    "paths": {
+      "~constants/*": ["src/constants/*"],
+      "~services/*": ["src/services/*"],
+      "~shared/*": ["shared/*"],
+      "~graphql": ["src/graphql/index.ts"],
+      "~uikit": ["src/components/uikit/index.ts"],
+      "~components/*": ["src/components/*"],
+      "~design-tokens/*": ["styled-system/tokens/*"],
+      "~styled-system/*": ["styled-system/generated/*"],
+      "~utils/*": ["src/utils/*"],
+      "~test/*": ["src/test/*"]
+    }
+  },
+  "include": ["shared", "src", "plugins", "styled-system"],
+  "exclude": [
+    "node_modules",
+    "assets",
+    "build",
+    "test",
+    ".storybook",
+    "__mocks__"
+  ]
+}

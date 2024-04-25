@@ -1,0 +1,12 @@
+mutation deletePostAttachment($input: DeletePostAttachmentInput!) {
+    deletePostAttachment(input: $input){
+        contentType
+        createdAt
+        description
+        fileUrl
+        filename
+        id
+        title
+        updatedAt
+    }
+}

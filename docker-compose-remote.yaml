@@ -1,0 +1,192 @@
+# This file is used to run your application on remote servers with
+# Docker Compose. It is not needed if you use Kubernetes or cloud services
+# instead.
+
+version: '3.9'
+x-logging: &default-logging
+  options:
+    max-size: '100m'
+    max-file: '10'
+  driver: json-file
+x-healthcheck: &default-healthcheck
+   test: wget -O/dev/null --tries=1 http://localhost:8080/healthz
+   interval: 20s
+   retries: 4
+   start_period: 20s
+   timeout: 10s
+
+services:
+  golf-bogeybuddies-${taito_env}-ingress:
+    container_name: golf-bogeybuddies-${taito_env}-ingress
+    labels:
+      golf-bogeybuddies-${taito_env}-autoheal: "true"
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    healthcheck:
+      << : *default-healthcheck
+      test: wget -O/dev/null --tries=1 --server-response http://localhost:80/ingress-healthz 2>&1 | grep "401 Unauthorized\|200 OK"
+    logging: *default-logging
+    networks:
+      - default
+    ports:
+      # WARNING: Do not ever remove the 127.0.0.1 as on some systems Docker host ports are exposed outside the Firewall!
+      - "127.0.0.1:_PORT_:80"
+    secrets:
+      - BASIC_AUTH_HTPASSWD
+    volumes:
+      - "./docker-nginx.conf:/etc/nginx/nginx.conf:delegated"
+
+  golf-bogeybuddies-${taito_env}-client:
+    container_name: golf-bogeybuddies-${taito_env}-client
+    labels:
+      golf-bogeybuddies-${taito_env}-autoheal: "true"
+    image: ${taito_container_registry}/client:${taito_build_image_tag}
+    deploy:
+       replicas: 1    
+    restart: unless-stopped
+    healthcheck: *default-healthcheck
+    logging: *default-logging
+    networks:
+      - default
+    ports:
+      - "8080"
+    environment:
+      # Paths
+      REPLACE_BASE_PATH: ''
+      REPLACE_ASSETS_PATH: ${taito_cdn_project_path}/${taito_build_image_tag}/client
+      REPLACE_ASSETS_DOMAIN: '${taito_cdn_domain}'
+      # Common variables
+      COMMON_COMPANY: golf
+      COMMON_PROJECT: golf-bogeybuddies
+
+  golf-bogeybuddies-${taito_env}-server:
+    container_name: golf-bogeybuddies-${taito_env}-server
+    labels:
+      golf-bogeybuddies-${taito_env}-autoheal: "true"
+    image: ${taito_container_registry}/server:${taito_build_image_tag}
+    deploy:
+       replicas: 1    
+    restart: unless-stopped
+    healthcheck: *default-healthcheck
+    logging: *default-logging
+    networks:
+      - default
+    ports:
+      - "8080"
+    secrets:
+      - DATABASE_PASSWORD
+      - REDIS_PASSWORD
+      - EXAMPLE_SECRET
+    environment:
+      # Paths and bind
+      BASE_PATH: /api
+      API_PORT: 8080
+      API_BINDADDR: 0.0.0.0
+      # Common variables
+      COMMON_COMPANY: golf
+      COMMON_PROJECT: golf-bogeybuddies
+      COMMON_DEBUG: 'false'
+      COMMON_LOG_FORMAT: text
+      COMMON_LOG_LEVEL: info      # trace, debug, info, warn, error, fatal
+      COMMON_ENV: local
+      # Services
+      SENTRY_DSN: #sentryDSN
+      DATABASE_HOST: 172.17.0.1  # For docker db: golf-bogeybuddies-${taito_env}-database
+      DATABASE_NAME: ${db_database_name}
+      DATABASE_USER: ${db_database_app_username}
+      DATABASE_POOL_MIN: '1'
+      DATABASE_POOL_MAX: '10'
+      REDIS_HOST: golf-bogeybuddies-${taito_env}-redis
+      REDIS_PORT: 6379
+
+  golf-bogeybuddies-${taito_env}-redis:
+    container_name: golf-bogeybuddies-${taito_env}-redis
+    labels:
+      golf-bogeybuddies-${taito_env}-autoheal: "true"
+    image: bitnami/redis:6.0
+    restart: unless-stopped
+    healthcheck:
+      << : *default-healthcheck
+      test: redis-cli ping
+    logging: *default-logging
+    networks:
+      - default
+    ports:
+      - "6379"
+    secrets:
+      - REDIS_PASSWORD
+    environment:
+      REDIS_PASSWORD_FILE: '/run/secrets/REDIS_PASSWORD'
+      REDIS_AOF_ENABLED: 'no'
+
+
+  # "EXTERNAL RESOURCES"
+  # Uncomment these if you want to run them in Docker Compose instead
+
+  # NOTE: If you use golf-bogeybuddies-${taito_env}-database instead of external database,
+  # do the following:
+  # - Uncomment the golf-bogeybuddies-${taito_env}-database in this file.
+  # - Modify the following settings in taito-config.sh:
+  #     db_database_mgr_username="$db_database_app_username"
+  # - In local-ci.sh, move 'db-deploy' step to be executed after the
+  #   'deployment-deploy' step, since database must be running during db deploy.
+  # - Answer 'no' to the database creation step during 'taito env apply:ENV'.
+
+  # golf-bogeybuddies-${taito_env}-database:
+  #   container_name: golf-bogeybuddies-${taito_env}-database
+  #   labels:
+  #     golf-bogeybuddies-${taito_env}-autoheal: "true"
+  #   image: postgres:14
+  #   restart: unless-stopped
+  #   # TODO healthcheck
+  #   logging: *default-logging
+  #   networks:
+  #     - default
+  #   ports:
+  #     # WARNING: Do not ever remove the 127.0.0.1 as on some systems Docker host ports are exposed outside the Firewall!
+  #     - "127.0.0.1:5432:5432"
+  #   secrets:
+  #     - DATABASE_PASSWORD
+  #   environment:
+  #     POSTGRES_DB: ${db_database_name}
+  #     POSTGRES_USER: ${db_database_app_username}
+  #     POSTGRES_PASSWORD_FILE: /run/secrets/DATABASE_PASSWORD
+  #   volumes:
+  #     - "./database:/docker-entrypoint-initdb.d:delegated"
+  #     - "./database-db/mount:/var/lib/postgresql/data"
+
+  # "INFRASTRUCTURE"
+
+  # watchtower:
+  #   image: index.docker.io/v2tec/watchtower
+  #   restart: unless-stopped
+  #   logging: *default-logging
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - ./watchtower-config.json:/config.json
+  #   command: --interval 60
+
+  golf-bogeybuddies-${taito_env}-autoheal:
+    container_name: golf-bogeybuddies-${taito_env}-autoheal
+    image: ghcr.io/taitounited/autoheal:20230227
+    restart: always
+    tty: true
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: golf-bogeybuddies-${taito_env}-autoheal
+
+secrets:
+  DATABASE_PASSWORD:
+    file: ./secrets/${taito_env}/${db_database_app_secret}
+  REDIS_PASSWORD:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-redis.password
+  EXAMPLE_SECRET:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-example.secret
+  SESSION_SECRET:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-session.secret
+  BASIC_AUTH_HTPASSWD:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-basic-auth.auth
+
+networks:
+  default:

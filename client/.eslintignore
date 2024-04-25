@@ -1,0 +1,6 @@
+assets/
+shared/
+__mocks__/
+src/graphql/generated.ts
+src/locales/
+jest.config.js

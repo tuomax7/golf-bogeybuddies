@@ -1,0 +1,12 @@
+mutation updatePostAttachment($input: UpdatePostAttachmentInput!) {
+    updatePostAttachment(input: $input){
+        contentType
+        createdAt
+        description
+        fileUrl
+        filename
+        id
+        title
+        updatedAt
+    }
+}

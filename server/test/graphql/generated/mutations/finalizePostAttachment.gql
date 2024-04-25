@@ -1,0 +1,12 @@
+mutation finalizePostAttachment($input: FinalizePostAttachmentInput!) {
+    finalizePostAttachment(input: $input){
+        contentType
+        createdAt
+        description
+        fileUrl
+        filename
+        id
+        title
+        updatedAt
+    }
+}

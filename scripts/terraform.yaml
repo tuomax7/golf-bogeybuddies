@@ -1,0 +1,77 @@
+# Here you can configure all your cloud resources (non-Kubernetes resources)
+# with a cloud-agnostic and developer-friendly YAML format
+
+# NOTE: See terraform/examples.yaml for some examples.
+
+settings:
+  backupEnabled: false
+  uptimeEnabled: false
+
+  auth:
+    serviceAccounts: # For GCP
+      - name: ${taito_project}-${taito_env}-server # For GCP
+        roles: [] # -server roles # For GCP
+
+  ingress:
+    enabled: true # ingress
+    class: cloudfront # For AWS
+    createMainDomain: false
+    domains:
+      - name: ${taito_domain}
+        # TODO: implement altDomains support
+        altDomains:
+          - name: ${taito_altdomain}
+
+  services:
+    client:
+      type: static
+      path: ""
+      uptimePath: ""
+
+    server:
+      type: function
+      path: /api
+      uptimePath: /api/uptimez
+      timeout: 25
+      runtime: nodejs20.x
+      memoryRequest: 256
+      secrets:
+        SERVICE_ACCOUNT_KEY: ${taito_project}-${taito_env}-server-serviceaccount.key
+        DATABASE_PASSWORD: ${db_database_app_secret}
+        DATABASE_SSL_CA: ${db_database_ssl_ca_secret}
+        DATABASE_SSL_CERT: ${db_database_ssl_cert_secret}
+        DATABASE_SSL_KEY: ${db_database_ssl_key_secret}
+        REDIS_PASSWORD: ${taito_project}-${taito_env}-redis.password
+      env:
+        # Paths and bind
+        BASE_PATH: /api
+        RUN_AS_FUNCTION: "true"
+        SECRET_NAME_PATH: ${taito_secret_name_path}
+        SECRET_REGION: ${taito_provider_region}
+        # Common variables
+        COMMON_LOG_FORMAT: ${taito_logging_format}
+        COMMON_LOG_LEVEL: info
+        # Services
+        SENTRY_DSN: #sentryDSN
+        DATABASE_HOST: "${db_database_real_host}"
+        DATABASE_PORT: "${db_database_real_port}"
+        DATABASE_SSL_ENABLED: "${db_database_ssl_enabled}"
+        DATABASE_SSL_SERVER_CERT_ENABLED: "${db_database_ssl_server_cert_enabled}"
+        DATABASE_NAME: ${db_database_name}
+        DATABASE_USER: ${db_database_app_username}
+        DATABASE_POOL_MIN: "5"
+        DATABASE_POOL_MAX: "10"
+        DATABASE_STATEMENT_TIMEOUT: "28000" # 28s to timeout before AWS API Gateway
+        REDIS_HOST: ${taito_random_name}-${taito_env}-001.${taito_random_name}-${taito_env}.nde1c2.use1.cache.amazonaws.com
+        REDIS_PORT: 6379
+        BUCKET_BUCKET: ${st_bucket_name}
+    redis:
+      type: redis
+      name: ${taito_random_name}-${taito_env}
+      replicas: 1
+      machineType: cache.t2.small
+      zones:
+        - ${taito_provider_zone}
+      secret: ${taito_project}-${taito_env}-redis.password
+
+# END

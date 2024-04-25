@@ -1,0 +1,142 @@
+{
+  "name": "golf-bogeybuddies",
+  "scripts": {
+    "prepare": "if [ \"$taito_mode\" != 'ci' ]; then husky install; fi",
+    "install-clean": "echo '# Nothing to cleanup'",
+    "install-ci": "npm-run-all install-all:shared",
+    "install-dev": "echo '# Installing all libraries on host for code editor support. TODO how to minimize as --only=dev affects devDepencies also?' && npm-run-all install-all",
+    "install-all": "npm-run-all -c install-all:client install-all:shared install-all:server ",
+    "install-all:client": "echo client libs... && cd client && mkdir -p node_modules && npm install --no-save || echo WARNING: Some libs failed to install",
+    "install-all:server": "echo server libs... && cd server && mkdir -p node_modules && npm install --no-save || echo WARNING: Some libs failed to install",
+    "install-all:shared": "echo shared libs... && cd shared && mkdir -p node_modules && npm install --no-save || echo WARNING: Some libs failed to install",
+    "taito-init": "taito -z ${taito_options} init:${taito_env} && npm-run-all import-db-data generate",
+    "taito-init:clean": "taito -z ${taito_options} init:${taito_env} --clean && npm-run-all import-db-data generate",
+    "import-db-data": "if [ -f ./database/data/${taito_env}.sql ]; then taito ${taito_options} db import:${taito_env} ./database/data/${taito_env}.sql; fi",
+    "taito-host-uikit": "cd client && npm run uikit:preview",
+    "code-generate": "npm run code-generate:server",
+    "code-generate:server": "cd server && ./generate-code.sh",
+    "generate": "npm-run-all generate:server generate:client ",
+    "generate:client": "if [ ${taito_env} = 'local' ] && [ -f ./client/generate.sh ]; then (cd client && ./generate.sh); else echo Nothing to generate; fi",
+    "generate:server": "if [ ${taito_env} = 'local' ] && [ -f ./server/generate.sh ]; then (cd server && ./generate.sh); else echo Nothing to generate; fi",
+    "info:local": "yes | taito ${taito_options} secret show:${taito_env}",
+    "info": "yes | taito ${taito_options} secret show:${taito_env} basic-auth",
+    "taito-host-lint": "echo Running lint locally && npm-run-all -p -c taito-host-lint:client taito-host-lint:server ",
+    "taito-host-lint:client": "cd client && npm-run-all lint typecheck",
+    "taito-host-lint:server": "cd server && npm-run-all lint typecheck",
+    "taito-host-unit": "echo Running unit tests locally && npm-run-all -p -c taito-host-unit:client taito-host-unit:server ",
+    "taito-host-unit:client": "cd client && npm-run-all 'unit {@}' --",
+    "taito-host-unit:server": "cd server && npm-run-all 'unit {@}' --",
+    "test": "npm-run-all test:server test:client ",
+    "test:client": "taito ${taito_options} util test:client:${taito_env}",
+    "test:server": "taito ${taito_options} util test:server:${taito_env}",
+    "taito-host-cypress": "npm-run-all taito-host-cypress:client",
+    "taito-host-cypress:client": "cd client && DATABASE_PASSWORD=$test_all_DATABASE_PASSWORD npm-run-all cypress:open",
+    "code-check": "docker run --interactive --tty --rm --env CODECLIMATE_CODE=\"$PWD\" --volume \"$PWD\":/code --volume /var/run/docker.sock:/var/run/docker.sock --volume /tmp/cc:/tmp/cc codeclimate/codeclimate engines:install && docker run --interactive --tty --rm --env CODECLIMATE_CODE=\"$PWD\" --volume \"$PWD\":/code --volume /var/run/docker.sock:/var/run/docker.sock --volume /tmp/cc:/tmp/cc codeclimate/codeclimate analyze",
+    "taito-host-code-check": "npm-run-all code-check",
+    "_dep-check_comment": "TODO how to pass -u argument from dep-check to dep-check:TARGET?",
+    "dep-check": "npm run \"dep-check:root {@}\" \"dep-check:client {@}\" \"dep-check:server {@}\" -- ",
+    "dep-check:root": "npm run _dep-check-script -- . ",
+    "dep-check:client": "npm run _dep-check-script -- client ",
+    "dep-check:server": "npm run _dep-check-script -- server ",
+    "_dep-check-script": "sh -c 'echo --- ${0} --- && cd ${0} && (npm-check ${@} || :) && echo && echo \"NOTE: Many of the devDependencies and ~ references are actually in use even if reported unused. But all unused dependencies can usually be removed from package.json.\" && echo' ",
+    "size-check": "npm run \"size-check:client {@}\" -- ",
+    "size-check:client": "cd client && echo --- client --- && npm run analyze -- ",
+    "project-show": "cat PROJECT.md | sed -n -e '/^## Contacts.*$/,/^#.*$/{ /^## Contacts.*$/d; /^#.*$/d; p; }'",
+    "precommit:branch": "if git-branch-is -q test || git-branch-is -q uat || git-branch-is -q qa || git-branch-is -q stag || git-branch-is -q canary || git-branch-is -q cana || git-branch-is -q prod || git-branch-is -q master; then echo 'ERROR: You cannot commit changes directly to this environment branch. Only fast-forward merge is allowed.' && echo && exit 1; fi",
+    "precommit:lint": "echo 'SKIP: Skipping linting on commit since we are already continuously linting during development.'",
+    "husky:commit-msg": "commitlint --edit",
+    "husky:pre-commit": "if [ \"$taito_mode\" != 'ci' ]; then npm-run-all precommit:branch precommit:lint; fi",
+    "husky:pre-push": "if [ \"$taito_mode\" != 'ci' ]; then npm-run-all --parallel generate taito-host-lint taito-host-unit; fi",
+    "release-pre:prod": "semantic-release --dry-run",
+    "release-post:prod": "semantic-release --no-ci"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "wip",
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "revert",
+          "build",
+          "ci",
+          "chore"
+        ]
+      ]
+    }
+  },
+  "release": {
+    "npmPublish": false,
+    "analyzeCommits": {
+      "preset": "angular",
+      "releaseRules": [
+        {
+          "type": "feat",
+          "release": "minor"
+        },
+        {
+          "type": "fix",
+          "release": "patch"
+        },
+        {
+          "type": "docs",
+          "release": "patch"
+        },
+        {
+          "type": "style",
+          "release": "patch"
+        },
+        {
+          "type": "refactor",
+          "release": "patch"
+        },
+        {
+          "type": "perf",
+          "release": "patch"
+        },
+        {
+          "type": "test",
+          "release": "patch"
+        },
+        {
+          "type": "revert",
+          "release": "patch"
+        },
+        {
+          "type": "build",
+          "release": "patch"
+        },
+        {
+          "type": "ci",
+          "release": "patch"
+        },
+        {
+          "type": "chore",
+          "release": "patch"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TaitoUnited/golf-bogeybuddies.git"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "~17.6.6",
+    "@commitlint/config-conventional": "~17.6.6",
+    "git-branch-is": "~4.0.0",
+    "husky": "~8.0.3",
+    "npm-run-all": "~4.1.5",
+    "semantic-release": "~21.0.6"
+  }
+}

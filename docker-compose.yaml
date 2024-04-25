@@ -1,0 +1,176 @@
+# This file is used to run your application locally with Docker Compose
+
+version: '3.8'
+services:
+  golf-bogeybuddies-ingress:
+    container_name: golf-bogeybuddies-ingress
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      # WARNING: Do not ever remove the 127.0.0.1 as on some systems Docker host ports are exposed outside the Firewall!
+      - "127.0.0.1:9458:80"
+    volumes:
+      - "./docker-nginx.conf:/etc/nginx/nginx.conf:delegated"
+
+  golf-bogeybuddies-client:
+    container_name: golf-bogeybuddies-client
+    build:
+      context: ./client
+      dockerfile: ${dockerfile}
+      args:
+        USER_UID: ${taito_host_user_uid}
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "8080"
+    volumes:
+      - "./client:/develop:delegated"
+      - "./shared:/develop/shared:delegated"
+      - "/develop/node_modules"
+      - "/develop/.vite"
+    secrets:
+      - DATABASE_PASSWORD
+    environment:
+      # Paths
+      BASE_PATH: ''
+      REPLACE_BASE_PATH: ''       # For Dockerfile.build
+      ASSETS_PATH: ''
+      REPLACE_ASSETS_PATH: ''     # For Dockerfile.build
+      ASSETS_DOMAIN: ''
+      REPLACE_ASSETS_DOMAIN: ''   # For Dockerfile.build
+      API_ROOT: ''
+      API_URL: /api
+      COMMON_PUBLIC_PORT: 9458
+      COMPILE_PORT: 3321          # For lazy compilation
+      # Host specific variables
+      DOCKER_HOST: ${DOCKER_HOST}
+      # Services
+      # NOTE: Database connection is for tests only
+      DATABASE_HOST: golf-bogeybuddies-database
+      DATABASE_PORT: ${db_database_port}
+      DATABASE_NAME: ${db_database_name}
+      DATABASE_USER: ${db_database_app_username}
+
+  golf-bogeybuddies-server:
+    container_name: golf-bogeybuddies-server
+    build:
+      context: ./server
+      dockerfile: ${dockerfile}
+      args:
+        USER_UID: ${taito_host_user_uid}
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "8080"
+      # WARNING: Do not ever remove the 127.0.0.1 as on some systems Docker host ports are exposed outside the Firewall!
+      - "127.0.0.1:4202:9229"
+    volumes:
+      - "./server:/develop:delegated"
+      - "./shared:/develop/shared:delegated"
+      - "/develop/node_modules"
+      - "/develop/vendor"
+    secrets:
+      - DATABASE_PASSWORD
+      - REDIS_PASSWORD
+      - SESSION_SECRET
+      - EXAMPLE_SECRET
+    environment:
+      # Paths and bind
+      BASE_PATH: /api
+      API_PORT: 8080
+      API_BINDADDR: 0.0.0.0
+      COMMON_PUBLIC_PORT: 9458
+      # Common variables
+      COMMON_COMPANY: golf
+      COMMON_PROJECT: golf-bogeybuddies
+      COMMON_DEBUG: 'false'
+      COMMON_LOG_FORMAT: text
+      COMMON_LOG_LEVEL: info      # trace, debug, info, warn, error, fatal
+      COMMON_ENV: local
+      # Services
+      SENTRY_DSN: #sentryDSN
+      DATABASE_HOST: golf-bogeybuddies-database
+      DATABASE_PORT: ${db_database_port}
+      DATABASE_NAME: ${db_database_name}
+      DATABASE_USER: ${db_database_app_username}
+      DATABASE_POOL_MIN: '1'
+      DATABASE_POOL_MAX: '10'
+      DATABASE_SSL_ENABLED: "${db_database_ssl_enabled}"
+      DATABASE_SSL_CLIENT_CERT_ENABLED: "${db_database_ssl_client_cert_enabled}"
+      DATABASE_SSL_SERVER_CERT_ENABLED: "${db_database_ssl_server_cert_enabled}"
+      REDIS_HOST: golf-bogeybuddies-redis
+      REDIS_PORT: 6379
+      # Enable api docs and GraphQL/Swagger playground in local environment
+      API_DOCS_ENABLED: true
+      API_PLAYGROUND_ENABLED: true
+
+  golf-bogeybuddies-redis:
+    container_name: golf-bogeybuddies-redis
+    image: bitnami/redis:6.0
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "6379"
+    secrets:
+      - REDIS_PASSWORD
+    environment:
+      REDIS_PASSWORD_FILE: '/run/secrets/REDIS_PASSWORD'
+      REDIS_AOF_ENABLED: 'no'
+
+  # "EXTERNAL RESOURCES"
+
+  golf-bogeybuddies-database:
+    container_name: golf-bogeybuddies-database
+    image: postgres:14
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      # WARNING: Do not ever remove the 127.0.0.1 as on some systems Docker host ports are exposed outside the Firewall!
+      - "127.0.0.1:7479:5432"
+    secrets:
+      - DATABASE_PASSWORD
+    environment:
+      POSTGRES_DB: ${db_database_name}
+      POSTGRES_USER: ${db_database_app_username}
+      POSTGRES_PASSWORD_FILE: /run/secrets/DATABASE_PASSWORD
+    volumes:
+      - "./database:/docker-entrypoint-initdb.d:delegated"
+
+  # "TOOLS"
+
+  # golf-bogeybuddies-pgadmin:
+  #   container_name: golf-bogeybuddies-pgadmin
+  #   image: dpage/pgadmin4
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
+  #     PGADMIN_DEFAULT_PASSWORD: root
+
+  # golf-bogeybuddies-pgweb:
+  #   container_name: golf-bogeybuddies-pgweb
+  #   image: sosedoff/pgweb
+  #   restart: unless-stopped
+  #   ports: 
+  #     - "8081:8081" 
+  #   command: pgweb --bind=0.0.0.0 --listen=8080 --prefix pgweb --url postgres://${db_database_app_username}:${taito_default_password}@golf-bogeybuddies-database:${db_database_port}/${db_database_name}?sslmode=disable
+
+secrets:
+  DATABASE_PASSWORD:
+    file: ./secrets/${taito_env}/${db_database_app_secret}
+  REDIS_PASSWORD:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-redis.password
+  SESSION_SECRET:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-session.secret
+  EXAMPLE_SECRET:
+    file: ./secrets/${taito_env}/${taito_project}-${taito_env}-example.secret
+
+networks:
+  default:

@@ -1,0 +1,7 @@
+{
+  "DATABASE_HOST": "127.0.0.1",
+  "DATABASE_PORT": "5001",
+  "DATABASE_NAME": "golf_bogeybuddies_dev",
+  "DATABASE_USER": "golf_bogeybuddies_dev_app",
+  "DATABASE_PASSWORD": "get dev or test environment db password from Kubernetes"
+}
